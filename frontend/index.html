@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetSentinel | Advanced Threat Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="animated-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+    
+    <div class="app-container">
+        <nav class="sidebar glass-panel">
+            <div class="logo">
+                <i class="ph-fill ph-shield-check"></i> NetSentinel
+            </div>
+            <ul>
+                <li class="active" data-target="overview"><i class="ph ph-squares-four"></i> Overview</li>
+                <li data-target="live-monitor"><i class="ph ph-activity"></i> Live Monitor</li>
+                <li data-target="alerts"><i class="ph ph-warning-circle"></i> Alerts</li>
+                <li data-target="topology"><i class="ph ph-graph"></i> Topology</li>
+                <li data-target="model-lab"><i class="ph ph-cpu"></i> Model Lab</li>
+            </ul>
+        </nav>
+        
+        <main class="content">
+            <div id="overview" class="section active">
+                <div class="section-header">
+                    <h2>Overview Dashboard</h2>
+                    <p class="subtitle">Real-time network traffic and threat analysis</p>
+                </div>
+                <div class="kpi-grid">
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon"><i class="ph ph-waves"></i></div>
+                        <div class="kpi-content">
+                            <h3>Flows / Sec</h3>
+                            <div id="kpi-flows">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon alert-icon"><i class="ph ph-shield-warning"></i></div>
+                        <div class="kpi-content">
+                            <h3>Active Alerts</h3>
+                            <div id="kpi-alerts">0</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon"><i class="ph ph-bug"></i></div>
+                        <div class="kpi-content">
+                            <h3>Top Attack Type</h3>
+                            <div id="kpi-attack">None</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <div class="kpi-icon status-icon"><i class="ph ph-pulse"></i></div>
+                        <div class="kpi-content">
+                            <h3>Model Status</h3>
+                            <div id="kpi-status" class="status-healthy">Healthy</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="controls glass-panel">
+                    <h3>Pipeline Control</h3>
+                    <div class="btn-group">
+                        <button id="start-stream-btn" class="btn primary"><i class="ph ph-play"></i> Start Stream</button>
+                        <button id="stop-stream-btn" class="btn secondary"><i class="ph ph-stop"></i> Stop Stream</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="live-monitor" class="section">
+                <div class="section-header">
+                    <h2>Live Monitor</h2>
+                    <p class="subtitle">Continuous stream of evaluated network packets</p>
+                </div>
+                <div id="live-toast-container"></div>
+                <div class="table-container glass-panel">
+                    <table class="data-table" id="live-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Source IP</th>
+                                <th>Dest IP</th>
+                                <th>Protocol</th>
+                                <th>Verdict</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="alerts" class="section">
+                <div class="section-header">
+                    <h2>Threat Alerts</h2>
+                    <p class="subtitle">Anomalies detected by the AI fusion engine</p>
+                </div>
+                <div class="table-container glass-panel">
+                    <table class="data-table" id="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Source IP</th>
+                                <th>Dest IP</th>
+                                <th>Severity</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="topology" class="section">
+                <div class="section-header">
+                    <h2>Network Topology</h2>
+                    <p class="subtitle">Real-time force-directed threat graph</p>
+                </div>
+                <div id="graph-container" class="glass-panel"></div>
+            </div>
+
+            <div id="model-lab" class="section">
+                <div class="section-header">
+                    <h2>Model Lab</h2>
+                    <p class="subtitle">AI model performance metrics</p>
+                </div>
+                <div id="model-metrics" class="glass-panel">Loading metrics...</div>
+            </div>
+            
+            <div id="explainer-panel" class="hidden glass-panel-solid">
+                <div class="explainer-header">
+                    <h3><i class="ph ph-brain"></i> Algorithm Explainer</h3>
+                    <button id="close-explainer"><i class="ph ph-x"></i></button>
+                </div>
+                <div id="explainer-content">
+                    Click an alert to view explanation.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/topology.js"></script>
+    <script src="js/alerts.js"></script>
+    <script src="js/explainer.js"></script>
+</body>
+</html>
