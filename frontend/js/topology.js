@@ -1,30 +1,20 @@
-let simulation, svg, link, node;
+let graphSim, graphSvg, graphLink, graphNode;
 const width = 800;
 const height = 600;
 
 document.addEventListener("DOMContentLoaded", () => {
-    svg = d3.select("#graph-container").append("svg")
+    graphSvg = d3.select("#graph-container").append("svg")
         .attr("width", "100%")
         .attr("height", "100%")
-        .attr("viewBox", [0, 0, width, height]);
+        .attr("viewBox", `0 0 ${width} ${height}`);
 
-    const defs = svg.append("defs");
-    const filter = defs.append("filter")
-        .attr("id", "glow");
-    filter.append("feGaussianBlur")
-        .attr("stdDeviation", "6")
-        .attr("result", "coloredBlur");
-    const feMerge = filter.append("feMerge");
-    feMerge.append("feMergeNode").attr("in", "coloredBlur");
-    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
-
-    simulation = d3.forceSimulation()
+    graphSim = d3.forceSimulation()
         .force("link", d3.forceLink().id(d => d.id).distance(120))
         .force("charge", d3.forceManyBody().strength(-300))
         .force("center", d3.forceCenter(width / 2, height / 2));
 
-    link = svg.append("g").attr("class", "links").selectAll("line");
-    node = svg.append("g").attr("class", "nodes").selectAll("circle");
+    graphLink = graphSvg.append("g").attr("class", "links").selectAll("line");
+    graphNode = graphSvg.append("g").attr("class", "nodes").selectAll("circle");
 
     loadGraph();
 
@@ -44,36 +34,42 @@ document.addEventListener("DOMContentLoaded", () => {
 async function loadGraph() {
     try {
         const data = await api.getTopology();
-        
-        node = node.data(data.nodes, d => d.id);
-        node.exit().remove();
-        const nodeEnter = node.enter().append("circle")
-            .attr("r", 10)
+        // Safeguard: Ensure all edges point to nodes that actually exist in the DB
+        // If the async DB stream inserts a flow before a graphNode, D3 will crash and draw nothing.
+        const validNodeIds = new Set(data.nodes.map(n => n.id));
+        const validEdges = data.edges.filter(e => 
+            validNodeIds.has(typeof e.source === 'object' ? e.source.id : e.source) && 
+            validNodeIds.has(typeof e.target === 'object' ? e.target.id : e.target)
+        );
+
+        graphNode = graphNode.data(data.nodes, d => d.id);
+        graphNode.exit().remove();
+        const nodeEnter = graphNode.enter().append("circle")
+            .attr("r", 12)
             .attr("class", "node")
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
                 .on("end", dragended));
                 
-        node = nodeEnter.merge(node)
-            .attr("fill", d => {
+        graphNode = nodeEnter.merge(graphNode)
+            .style("fill", d => {
                 if (d.risk_score > 0.8) return "var(--color-red)";
                 if (d.risk_score > 0.5) return "var(--color-amber)";
-                return "var(--color-primary)"; // Changed from green to neon cyan
-            })
-            .style("filter", d => d.risk_score > 0.5 ? "url(#glow)" : "none");
+                return "var(--color-primary)";
+            });
 
-        node.selectAll("title").remove();
-        node.append("title").text(d => `${d.id}\nRisk: ${d.risk_score.toFixed(2)}`);
+        graphNode.selectAll("title").remove();
+        graphNode.append("title").text(d => `${d.id}\nRisk: ${d.risk_score != null ? d.risk_score.toFixed(2) : '0.00'}`);
 
-        link = link.data(data.edges);
-        link.exit().remove();
-        const linkEnter = link.enter().append("line").attr("class", "link");
-        link = linkEnter.merge(link);
+        graphLink = graphLink.data(validEdges);
+        graphLink.exit().remove();
+        const linkEnter = graphLink.enter().append("line").attr("class", "link");
+        graphLink = linkEnter.merge(graphLink);
 
-        simulation.nodes(data.nodes).on("tick", ticked);
-        simulation.force("link").links(data.edges);
-        simulation.alpha(0.3).restart();
+        graphSim.nodes(data.nodes).on("tick", ticked);
+        graphSim.force("link").links(validEdges);
+        graphSim.alpha(0.3).restart();
 
     } catch (e) {
         console.error("Topology load error:", e);
@@ -81,19 +77,19 @@ async function loadGraph() {
 }
 
 function ticked() {
-    link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+    graphLink
+        .attr("x1", d => isNaN(d.source.x) ? width/2 : d.source.x)
+        .attr("y1", d => isNaN(d.source.y) ? height/2 : d.source.y)
+        .attr("x2", d => isNaN(d.target.x) ? width/2 : d.target.x)
+        .attr("y2", d => isNaN(d.target.y) ? height/2 : d.target.y);
 
-    node
-        .attr("cx", d => d.x = Math.max(10, Math.min(width - 10, d.x)))
-        .attr("cy", d => d.y = Math.max(10, Math.min(height - 10, d.y)));
+    graphNode
+        .attr("cx", d => { d.x = isNaN(d.x) ? width/2 : d.x; return Math.max(10, Math.min(width - 10, d.x)); })
+        .attr("cy", d => { d.y = isNaN(d.y) ? height/2 : d.y; return Math.max(10, Math.min(height - 10, d.y)); });
 }
 
 function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
+    if (!event.active) graphSim.alphaTarget(0.3).restart();
     d.fx = d.x;
     d.fy = d.y;
 }
@@ -104,7 +100,7 @@ function dragged(event, d) {
 }
 
 function dragended(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
+    if (!event.active) graphSim.alphaTarget(0);
     d.fx = null;
     d.fy = null;
 }

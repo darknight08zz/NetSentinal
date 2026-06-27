@@ -2,17 +2,17 @@ const API_BASE = "http://localhost:8000/api";
 
 class NetSentinelAPI {
     async getStatsSummary() {
-        const res = await fetch(`${API_BASE}/stats/summary`);
+        const res = await fetch(`${API_BASE}/stats/summary`, { cache: 'no-store' });
         return res.json();
     }
     
     async getTopology() {
-        const res = await fetch(`${API_BASE}/topology`);
+        const res = await fetch(`${API_BASE}/topology`, { cache: 'no-store' });
         return res.json();
     }
     
     async getAlerts(limit = 50) {
-        const res = await fetch(`${API_BASE}/alerts?limit=${limit}`);
+        const res = await fetch(`${API_BASE}/alerts?limit=${limit}`, { cache: 'no-store' });
         return res.json();
     }
     
@@ -31,7 +31,7 @@ class NetSentinelAPI {
     }
     
     async getModels() {
-        const res = await fetch(`${API_BASE}/models`);
+        const res = await fetch(`${API_BASE}/models`, { cache: 'no-store' });
         return res.json();
     }
 
